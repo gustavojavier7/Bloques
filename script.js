@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const boardSize = 8;
-    let board = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
+    let board = Array(boardSize).fill().map(() => Array(boardSize).fill(null));
 
     // 1. Estado Global para la selección
     let selectedPieceIndex = null;
@@ -16,14 +16,19 @@ document.addEventListener('DOMContentLoaded', () => {
         { shape: [[1, 1, 1]], color: '#ff4444' }, // 1x3 H
         { shape: [[1], [1], [1]], color: '#ff4444' }, // 1x3 V
         { shape: [[1, 0], [1, 1]], color: '#4444ff' }, // L 2x2
+        { shape: [[0, 1], [1, 1]], color: '#4444ff' }, // L Rotada 1
+        { shape: [[1, 1], [0, 1]], color: '#4444ff' }, // L Rotada 2
+        { shape: [[1, 1], [1, 0]], color: '#4444ff' }, // L Rotada 3
         // CLÁSICOS
         { shape: [[1, 1, 1, 1]], color: '#32CD32' }, // 1x4 H
         { shape: [[1], [1], [1], [1]], color: '#32CD32' }, // 1x4 V
         { shape: [[1, 1], [1, 1]], color: '#44ff44' }, // 2x2
         { shape: [[1, 1, 1], [0, 1, 0]], color: '#9370DB' }, // T
+        { shape: [[0, 1, 0], [1, 1, 1]], color: '#9370DB' }, // T Invertida
         // DIFÍCILES
         { shape: [[1, 1, 1], [1, 1, 1], [1, 1, 1]], color: '#8B0000' }, // 3x3
-        { shape: [[1, 1, 0], [0, 1, 1]], color: '#FF6347' } // Z
+        { shape: [[1, 1, 0], [0, 1, 1]], color: '#FF6347' }, // Z
+        { shape: [[0, 1, 1], [1, 1, 0]], color: '#FF6347' } // S
     ];
 
     const gameBoard = document.getElementById('gameBoard');
@@ -71,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawGhost(piece, startRow, startCol, color) {
+        refreshBoardView();
         for (let i = 0; i < piece.shape.length; i++) {
             for (let j = 0; j < piece.shape[0].length; j++) {
                 if (piece.shape[i][j] === 1) {
@@ -80,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const cell = document.querySelector(
                             `.cell[data-row="${targetRow}"][data-col="${targetCol}"]`
                         );
-                        if (cell && board[targetRow][targetCol] === 0) {
+                        if (cell) {
                             cell.style.backgroundColor = color;
                         }
                     }
@@ -93,9 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < boardSize; i++) {
             for (let j = 0; j < boardSize; j++) {
                 const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`);
-                if (board[i][j] !== 1) {
-                    cell.style.backgroundColor = 'white';
-                }
+                cell.style.backgroundColor = board[i][j] ?? 'white';
             }
         }
     }
@@ -133,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < piece.shape.length; i++) {
             for (let j = 0; j < piece.shape[0].length; j++) {
                 if (piece.shape[i][j] === 1) {
-                    board[row + i][col + j] = 1;
+                    board[row + i][col + j] = piece.color;
                     const cell = document.querySelector(
                         `.cell[data-row="${row + i}"][data-col="${col + j}"]`
                     );
@@ -150,13 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Detectar filas
         for (let i = 0; i < boardSize; i++) {
-            if (board[i].every(cell => cell === 1)) rowsToClear.push(i);
+            if (board[i].every(cell => cell !== null)) rowsToClear.push(i);
         }
         // Detectar columnas
         for (let j = 0; j < boardSize; j++) {
             let colFull = true;
             for (let i = 0; i < boardSize; i++) {
-                if (board[i][j] === 0) colFull = false;
+                if (board[i][j] === null) colFull = false;
             }
             if (colFull) colsToClear.push(j);
         }
@@ -165,23 +169,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        rowsToClear.forEach(rowIndex => board[rowIndex].fill(0));
+        rowsToClear.forEach(rowIndex => board[rowIndex].fill(null));
         colsToClear.forEach(colIndex => {
-            for (let i = 0; i < boardSize; i++) board[i][colIndex] = 0;
+            for (let i = 0; i < boardSize; i++) board[i][colIndex] = null;
         });
 
-        rowsToClear.forEach(rowIndex => {
-            for (let j = 0; j < boardSize; j++) {
-                const cell = document.querySelector(`.cell[data-row="${rowIndex}"][data-col="${j}"]`);
-                cell.style.backgroundColor = 'white';
-            }
-        });
-        colsToClear.forEach(colIndex => {
-            for (let i = 0; i < boardSize; i++) {
-                const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${colIndex}"]`);
-                cell.style.backgroundColor = 'white';
-            }
-        });
+        refreshBoardView();
     }
 
     // --- FUNCIONES AUXILIARES (Display & Helpers) ---
@@ -227,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (shape[i][j] === 1) {
                     const r = row + i;
                     const c = col + j;
-                    if (r >= boardSize || c >= boardSize || board[r][c] === 1) return false;
+                    if (r >= boardSize || c >= boardSize || board[r][c] !== null) return false;
                 }
             }
         }
@@ -248,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Reset botón
     generateButton.addEventListener('click', () => {
-        board = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
+        board = Array(boardSize).fill().map(() => Array(boardSize).fill(null));
         initializeBoard();
         generatePieces();
     });
