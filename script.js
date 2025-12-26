@@ -67,7 +67,19 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPieces.forEach((piece, index) => {
             const pieceDiv = document.createElement('div');
             pieceDiv.className = 'piece';
-            pieceDiv.textContent = `Pieza ${index + 1}`;
+            pieceDiv.style.display = 'grid';
+            pieceDiv.style.gridTemplateColumns = `repeat(${piece.shape[0].length}, 16px)`;
+            pieceDiv.style.gap = '2px';
+
+            piece.shape.forEach(row => {
+                row.forEach(cell => {
+                    const cellDiv = document.createElement('div');
+                    cellDiv.style.width = '16px';
+                    cellDiv.style.height = '16px';
+                    cellDiv.style.backgroundColor = cell === 1 ? piece.color : 'transparent';
+                    pieceDiv.appendChild(cellDiv);
+                });
+            });
             pieceDiv.addEventListener('click', () => placePiece(index));
             piecesDiv.appendChild(pieceDiv);
         });

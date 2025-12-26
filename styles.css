@@ -41,7 +41,7 @@ h1 {
 .piece {
     display: inline-block;
     margin: 5px;
-    padding: 5px;
+    padding: 6px;
     background-color: #f8f9fa;
     border: 2px solid #007bff;
     border-radius: 5px;
