@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Estado Global para la selección
     let selectedPieceIndex = null;
     let currentPieces = [];
+    let isGameOver = false;
 
     // --- SET DE PIEZAS ESTÁNDAR (Integrado) ---
     const pieces = [
@@ -57,12 +58,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function checkGameOver() {
+        const availablePieces = currentPieces.filter(piece => !piece.played);
+
+        if (availablePieces.length === 0) return false;
+
+        for (const piece of availablePieces) {
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    if (canPlacePiece(piece, i, j)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    function showGameOver() {
+        isGameOver = true;
+        messageDiv.textContent = 'GAME OVER - Pulsa "Generar" para reiniciar';
+        messageDiv.style.color = 'red';
+        gameBoard.style.opacity = '0.5';
+    }
+
     // --- NUEVA LÓGICA DE PREVIEW (Visual) ---
     function handleMouseEnter(row, col) {
+        if (isGameOver) return;
         if (selectedPieceIndex === null) return;
 
         const piece = currentPieces[selectedPieceIndex];
-        if (!piece) return;
+        if (!piece || piece.played) return;
         const isValid = canPlacePiece(piece, row, col);
         const color = isValid ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 0, 0, 0.3)';
 
@@ -106,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- TU LÓGICA DE COLOCACIÓN ---
     function handleCellClick(row, col) {
+        if (isGameOver) return;
         if (selectedPieceIndex === null) return;
 
         const piece = currentPieces[selectedPieceIndex];
@@ -114,19 +142,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (canPlacePiece(piece, row, col)) {
             placePieceAt(piece, row, col);
 
-            // Eliminar pieza usada y resetear selección
-            currentPieces.splice(selectedPieceIndex, 1);
+            // Marcar pieza como jugada y resetear selección
+            currentPieces[selectedPieceIndex].played = true;
             selectedPieceIndex = null;
 
             // Lógica de juego
             checkAndClearLines();
             displayPieces();
 
-            if (currentPieces.length === 0) {
-                generatePieces();
+            const allPlayed = currentPieces.every(pieceOption => pieceOption.played);
+
+            if (allPlayed) {
+                setTimeout(() => {
+                    generatePieces();
+                    if (checkGameOver()) {
+                        showGameOver();
+                    }
+                }, 200);
+            } else {
+                if (checkGameOver()) {
+                    showGameOver();
+                }
             }
         } else {
             messageDiv.textContent = 'No cabe ahí';
+            messageDiv.style.color = '#dc3545';
             setTimeout(() => {
                 messageDiv.textContent = '';
             }, 1000);
@@ -217,6 +257,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPieces.forEach((piece, index) => {
             const pieceDiv = document.createElement('div');
             pieceDiv.className = 'piece';
+            if (piece.played) {
+                pieceDiv.style.opacity = '0.4';
+            }
             if (index === selectedPieceIndex) {
                 pieceDiv.style.borderColor = '#ff0000';
                 pieceDiv.style.transform = 'scale(1.1)';
@@ -239,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Evento CLICK en la PIEZA (Selección)
             pieceDiv.addEventListener('click', event => {
                 event.stopPropagation();
+                if (piece.played) return;
                 selectedPieceIndex = selectedPieceIndex === index ? null : index;
                 displayPieces();
             });
@@ -264,7 +308,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function generatePieces() {
         currentPieces = [];
         for (let k = 0; k < 3; k++) {
-            currentPieces.push(pieces[Math.floor(Math.random() * pieces.length)]);
+            const piece = pieces[Math.floor(Math.random() * pieces.length)];
+            currentPieces.push({
+                shape: piece.shape,
+                color: piece.color,
+                played: false
+            });
         }
         displayPieces();
     }
@@ -276,6 +325,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reset botón
     generateButton.addEventListener('click', () => {
         board = Array(boardSize).fill().map(() => Array(boardSize).fill(null));
+        selectedPieceIndex = null;
+        currentPieces = [];
+        isGameOver = false;
+        messageDiv.textContent = '';
+        messageDiv.style.color = '#dc3545';
+        gameBoard.style.opacity = '1';
         initializeBoard();
         generatePieces();
     });
