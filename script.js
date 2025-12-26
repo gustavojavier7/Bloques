@@ -307,49 +307,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- GENERACIÓN INTELIGENTE DE PIEZAS (AI) ---
     function generatePieces() {
-        currentPieces = [];
-        let foundSolvableSet = false;
         let attempts = 0;
-        const maxAttempts = 20; // Límite para no congelar el navegador
+        const maxAttempts = 50; // Reducido para no bloquear UI
+        let found = false;
+        currentPieces = [];
 
-        // Hacemos una copia profunda del tablero actual para las simulaciones
-        // (Usamos 0 y 1 para simplificar la simulación lógica, o copiamos colores si es necesario,
-        // pero para validar solo nos importa si está ocupado != null)
-        const currentBoardState = board.map(row => [...row]);
+        // Copia del tablero real para simular (solo nos importa qué celdas no son null)
+        // Mapeamos a string 'c' o null para simplificar
+        const simulationBoard = board.map(row => row.map(cell => (cell !== null ? 'c' : null)));
 
-        while (attempts < maxAttempts && !foundSolvableSet) {
-            // 1. Generar 3 candidatas al azar
-            const candidates = [];
-            for (let k = 0; k < 3; k++) {
-                const p = pieces[Math.floor(Math.random() * pieces.length)];
-                candidates.push({ ...p, played: false }); // Clonamos estructura
-            }
+        while (attempts < maxAttempts) {
+            // Generar 3 candidatas
+            const candidates = [
+                { ...pieces[Math.floor(Math.random() * pieces.length)], played: false },
+                { ...pieces[Math.floor(Math.random() * pieces.length)], played: false },
+                { ...pieces[Math.floor(Math.random() * pieces.length)], played: false }
+            ];
 
-            // 2. Preguntar al Oráculo si este set es viable
-            if (canClearHand(currentBoardState, candidates)) {
+            if (isPieceSetSolvable(simulationBoard, candidates)) {
                 currentPieces = candidates;
-                foundSolvableSet = true;
+                found = true;
+                break;
             }
-
             attempts++;
         }
 
-        // PLAN B: Si el tablero está muy complicado y no encontramos combinación perfecta,
-        // intentamos generar piezas muy pequeñas (salvavidas) para no matar al jugador injustamente.
-        if (!foundSolvableSet) {
-            //console.log("Modo Emergencia activado");
-            const easyPieces = pieces.filter(p => p.shape.flat().length <= 2); // Solo piezas de 1 o 2 bloques
-            currentPieces = [];
-            for (let k = 0; k < 3; k++) {
-                const p = easyPieces[Math.floor(Math.random() * easyPieces.length)];
-                currentPieces.push({ ...p, played: false });
-            }
+        // PLAN DE EMERGENCIA: Si no encontramos combinación compleja, damos piezas 1x1
+        if (!found) {
+            //console.log("Activando modo emergencia (piezas simples)");
+            const simplePiece = pieces.find(
+                piece => piece.shape.length === 1 && piece.shape[0].length === 1
+            ); // 1x1
+            currentPieces = [
+                { ...simplePiece, played: false },
+                { ...simplePiece, played: false },
+                { ...simplePiece, played: false }
+            ];
         }
 
         displayPieces();
 
-        // Verificación final: Si incluso con piezas fáciles no se puede, el juego terminará
-        // en el próximo click o chequeo.
+        // Verificación final de muerte: Si ni siquiera las 1x1 caben, entonces sí es Game Over
         if (checkGameOver()) {
             showGameOver();
         }
@@ -382,52 +380,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- MOTOR DE SIMULACIÓN (EL ORÁCULO) ---
 
-    // Verifica si existe ALGÚN orden para colocar todas las piezas de la mano
-    function canClearHand(boardState, handPieces) {
-        // Caso base: Si no quedan piezas por poner, ¡hemos tenido éxito!
-        if (handPieces.length === 0) return true;
-
-        // Intentamos poner cada pieza disponible en el tablero actual
-        for (let i = 0; i < handPieces.length; i++) {
-            const piece = handPieces[i];
-            const remainingPieces = handPieces.filter((_, index) => index !== i);
-
-            // Probamos todas las posiciones posibles en el tablero
-            for (let r = 0; r < boardSize; r++) {
-                for (let c = 0; c < boardSize; c++) {
-                    if (canPlaceInVirtualBoard(boardState, piece, r, c)) {
-                        // SIMULACIÓN:
-                        // 1. Clonar tablero (para no afectar al anterior)
-                        let nextBoard = boardState.map(row => [...row]);
-
-                        // 2. Colocar pieza virtualmente
-                        placeInVirtualBoard(nextBoard, piece, r, c);
-
-                        // 3. Limpiar líneas virtuales (CRUCIAL: esto abre espacio para la siguiente)
-                        nextBoard = clearVirtualLines(nextBoard);
-
-                        // 4. RECURSIÓN: ¿Podemos colocar el resto de piezas en este nuevo tablero?
-                        if (canClearHand(nextBoard, remainingPieces)) {
-                            return true; // Encontramos un camino ganador
-                        }
-                    }
-                }
-            }
-        }
-
-        // Si probamos todas las piezas en todos los lugares y nada funcionó:
-        return false;
+    // 6️⃣ HELPERS PUROS (Optimizados)
+    function cloneBoard(boardState) {
+        return boardState.map(row => row.slice()); // Copia superficial es suficiente para primitivos/strings
     }
 
-    // Helpers virtuales (trabajan con datos en memoria, no con HTML)
-    function canPlaceInVirtualBoard(virtualBoard, piece, row, col) {
+    function canPlaceOnBoard(boardState, piece, row, col) {
         for (let i = 0; i < piece.shape.length; i++) {
             for (let j = 0; j < piece.shape[0].length; j++) {
                 if (piece.shape[i][j] === 1) {
                     const r = row + i;
                     const c = col + j;
-                    // Verifica límites y si la celda NO es null (ocupada)
-                    if (r >= boardSize || c >= boardSize || virtualBoard[r][c] !== null) {
+                    // Verificar límites y si la celda no es null (ocupada)
+                    if (r >= boardSize || c >= boardSize || boardState[r][c] !== null) {
                         return false;
                     }
                 }
@@ -436,41 +401,90 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    function placeInVirtualBoard(virtualBoard, piece, row, col) {
+    // Coloca Y LIMPIA líneas (Crucial para la simulación)
+    function placeAndClearOnBoard(boardState, piece, row, col) {
+        const newBoard = cloneBoard(boardState);
+
+        // 1. Colocar
         for (let i = 0; i < piece.shape.length; i++) {
             for (let j = 0; j < piece.shape[0].length; j++) {
                 if (piece.shape[i][j] === 1) {
-                    virtualBoard[row + i][col + j] = 'occupied'; // Marcador simple
+                    newBoard[row + i][col + j] = 'occupied'; // Marcador simple para simulación
                 }
             }
         }
-    }
 
-    function clearVirtualLines(virtualBoard) {
+        // 2. Limpiar Líneas (Lógica simplificada para simulación)
         // Filas
-        let rowsToClear = [];
+        const rowsToClear = [];
         for (let i = 0; i < boardSize; i++) {
-            if (virtualBoard[i].every(cell => cell !== null)) rowsToClear.push(i);
+            if (newBoard[i].every(cell => cell !== null)) rowsToClear.push(i);
         }
-
         // Columnas
-        let colsToClear = [];
+        const colsToClear = [];
         for (let j = 0; j < boardSize; j++) {
             let full = true;
-            for (let i = 0; i < boardSize; i++) {
-                if (virtualBoard[i][j] === null) full = false;
-            }
+            for (let i = 0; i < boardSize; i++) if (newBoard[i][j] === null) full = false;
             if (full) colsToClear.push(j);
         }
 
-        if (rowsToClear.length === 0 && colsToClear.length === 0) return virtualBoard;
-
-        // Limpieza
-        rowsToClear.forEach(r => virtualBoard[r].fill(null));
+        // Aplicar limpieza
+        rowsToClear.forEach(r => newBoard[r].fill(null));
         colsToClear.forEach(c => {
-            for (let i = 0; i < boardSize; i++) virtualBoard[i][c] = null;
+            for (let i = 0; i < boardSize; i++) newBoard[i][c] = null;
         });
 
-        return virtualBoard;
+        return newBoard;
+    }
+
+    // 7️⃣ GENERAR PERMUTACIONES
+    function getPermutations(arr) {
+        if (arr.length <= 1) return [arr];
+        const result = [];
+        for (let i = 0; i < arr.length; i++) {
+            const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+            for (const perm of getPermutations(rest)) {
+                result.push([arr[i], ...perm]);
+            }
+        }
+        return result;
+    }
+
+    // 8️⃣ NÚCLEO: SIMULADOR RECURSIVO
+    function isPieceSetSolvable(initialBoard, pieceSet) {
+        const permutations = getPermutations(pieceSet);
+
+        // Probamos cada orden posible (A-B-C, B-A-C, etc.)
+        for (const orderedPieces of permutations) {
+            if (canSolveSequence(initialBoard, orderedPieces)) {
+                return true; // ¡Encontramos un camino ganador!
+            }
+        }
+        return false;
+    }
+
+    // Función recursiva que intenta colocar la secuencia dada
+    function canSolveSequence(currentBoard, piecesQueue) {
+        if (piecesQueue.length === 0) return true; // Caso base: todas puestas
+
+        const [currentPiece, ...remainingPieces] = piecesQueue;
+
+        // Buscamos CUALQUIER lugar donde quepa
+        for (let i = 0; i < boardSize; i++) {
+            for (let j = 0; j < boardSize; j++) {
+                if (canPlaceOnBoard(currentBoard, currentPiece, i, j)) {
+                    // Simulamos colocar Y LIMPIAR
+                    const nextBoard = placeAndClearOnBoard(currentBoard, currentPiece, i, j);
+
+                    // Paso Recursivo: ¿Podemos poner el resto en este nuevo tablero?
+                    if (canSolveSequence(nextBoard, remainingPieces)) {
+                        return true;
+                    }
+                    // Si no funcionó el resto, seguimos buscando otra posición para esta pieza
+                }
+            }
+        }
+
+        return false; // Esta pieza no cabe en ningún lado en este turno
     }
 });
