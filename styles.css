@@ -38,6 +38,16 @@ h1 {
     border: 1px solid #ccc;
 }
 
+.cell.preview-valid {
+    outline: 2px solid #28a745;
+    background-color: rgba(40, 167, 69, 0.2);
+}
+
+.cell.preview-invalid {
+    outline: 2px solid #dc3545;
+    background-color: rgba(220, 53, 69, 0.2);
+}
+
 .piece {
     display: inline-block;
     margin: 5px;
@@ -50,6 +60,11 @@ h1 {
 
 .piece:hover {
     background-color: #e9ecef;
+}
+
+.piece.selected {
+    border-color: #28a745;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.4);
 }
 
 .button {
