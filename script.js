@@ -147,34 +147,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- LÓGICA DE LIMPIEZA DE LÍNEAS (Agregada) ---
+    // 5️⃣ LIMPIEZA DE LÍNEAS CON ANIMACIÓN (Game Juice)
     function checkAndClearLines() {
         const rowsToClear = [];
         const colsToClear = [];
 
-        // Detectar filas
+        // 1. Detectar filas completas (que no tengan null)
         for (let i = 0; i < boardSize; i++) {
-            if (board[i].every(cell => cell !== null)) rowsToClear.push(i);
+            if (board[i].every(cell => cell !== null)) {
+                rowsToClear.push(i);
+            }
         }
-        // Detectar columnas
+
+        // 2. Detectar columnas completas
         for (let j = 0; j < boardSize; j++) {
             let colFull = true;
             for (let i = 0; i < boardSize; i++) {
-                if (board[i][j] === null) colFull = false;
+                if (board[i][j] === null) {
+                    colFull = false;
+                    break;
+                }
             }
             if (colFull) colsToClear.push(j);
         }
 
-        if (rowsToClear.length === 0 && colsToClear.length === 0) {
-            return;
-        }
+        // Si no hay nada que limpiar, salimos
+        if (rowsToClear.length === 0 && colsToClear.length === 0) return;
 
-        rowsToClear.forEach(rowIndex => board[rowIndex].fill(null));
-        colsToClear.forEach(colIndex => {
-            for (let i = 0; i < boardSize; i++) board[i][colIndex] = null;
+        // 3. FASE DE ANIMACIÓN (Feedback Visual)
+        // Marcamos las celdas sin borrar los datos todavía
+        rowsToClear.forEach(r => {
+            for (let j = 0; j < boardSize; j++) {
+                const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${j}"]`);
+                cell.classList.add('clearing');
+            }
         });
 
-        refreshBoardView();
+        colsToClear.forEach(c => {
+            for (let i = 0; i < boardSize; i++) {
+                const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${c}"]`);
+                cell.classList.add('clearing');
+            }
+        });
+
+        // 4. FASE LÓGICA (Borrado de datos)
+        // Esperamos 300ms a que termine la animación
+        setTimeout(() => {
+            // Borrar datos del modelo
+            rowsToClear.forEach(r => board[r].fill(null));
+            colsToClear.forEach(c => {
+                for (let i = 0; i < boardSize; i++) board[i][c] = null;
+            });
+
+            // Actualizar vista final (quita colores)
+            refreshBoardView();
+
+            // Limpiar clases de animación para la próxima vez
+            document.querySelectorAll('.cell.clearing').forEach(cell => {
+                cell.classList.remove('clearing');
+            });
+
+            // Aquí podrías añadir sonido: playSound('clear');
+        }, 300); // 300ms coincide con 0.15s * 2 del CSS
     }
 
     // --- FUNCIONES AUXILIARES (Display & Helpers) ---

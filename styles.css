@@ -86,3 +86,30 @@ h1 {
     color: #dc3545;
     font-weight: bold;
 }
+
+/* --- ANIMACIONES --- */
+@keyframes clearFlash {
+    0% { 
+        background-color: #ffffff; 
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(255, 215, 0, 0);
+    }
+    50% { 
+        background-color: #ffe066; /* Dorado Navideño */
+        transform: scale(1.1);      /* Pequeño pop */
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    }
+    100% { 
+        background-color: #ffffff; 
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(255, 215, 0, 0);
+    }
+}
+
+.cell.clearing {
+    /* 0.15s * 2 repeticiones = 0.3s (300ms) -> Sincronizado con JS */
+    animation: clearFlash 0.15s ease-in-out 2;
+    z-index: 10; /* Asegura que el pop se vea sobre otras celdas */
+    position: relative; /* Necesario para z-index */
+    border-color: #ffd700; /* Borde dorado durante la explosión */
+}
