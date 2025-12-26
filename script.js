@@ -2,13 +2,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const boardSize = 8;
     let board = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
     const pieces = [
-        { shape: [[1, 1, 1]], color: '#ff4444' }, // 1x3 horizontal
-        { shape: [[1], [1], [1]], color: '#ff4444' }, // 1x3 vertical
-        { shape: [[1, 1], [1, 1]], color: '#44ff44' }, // 2x2
-        { shape: [[1, 0], [1, 1]], color: '#4444ff' }, // L shape (2x2)
-        { shape: [[0, 1], [1, 1]], color: '#4444ff' }, // L shape rotated
-        { shape: [[1, 1], [0, 1]], color: '#4444ff' }, // L shape rotated
-        { shape: [[1, 1], [1, 0]], color: '#4444ff' }  // L shape rotated
+        // --- GRUPO 1: BÁSICOS (1 y 2 Bloques) ---
+        // Ideales para llenar huecos pequeños (Salvavidas)
+        { shape: [[1]], color: '#FFD700' },             // 1x1 (Monominó)
+        { shape: [[1, 1]], color: '#FFD700' },          // 1x2 Horizontal
+        { shape: [[1], [1]], color: '#FFD700' },        // 1x2 Vertical
+
+        // --- GRUPO 2: INTERMEDIOS (3 Bloques - Trominós) ---
+        // Líneas y esquinas pequeñas
+        { shape: [[1, 1, 1]], color: '#ff4444' },       // 1x3 Horizontal
+        { shape: [[1], [1], [1]], color: '#ff4444' },   // 1x3 Vertical
+        { shape: [[1, 0], [1, 1]], color: '#4444ff' },  // Esquina Pequeña (L 2x2)
+        { shape: [[0, 1], [1, 1]], color: '#4444ff' },  // Esquina Rotada 1
+        { shape: [[1, 1], [0, 1]], color: '#4444ff' },  // Esquina Rotada 2
+        { shape: [[1, 1], [1, 0]], color: '#4444ff' },  // Esquina Rotada 3
+
+        // --- GRUPO 3: CLÁSICOS (4 Bloques - Tetrominós) ---
+        // Bloques estándar tipo Tetris
+        { shape: [[1, 1, 1, 1]], color: '#32CD32' },    // 1x4 Horizontal
+        { shape: [[1], [1], [1], [1]], color: '#32CD32' }, // 1x4 Vertical
+        { shape: [[1, 1], [1, 1]], color: '#44ff44' },  // Cuadrado 2x2
+
+        // Formas en "L" Grande (3x2)
+        { shape: [[1, 0], [1, 0], [1, 1]], color: '#FFA500' }, // L Grande
+        { shape: [[1, 1, 1], [1, 0, 0]], color: '#FFA500' },   // L Grande acostada
+        { shape: [[0, 1], [0, 1], [1, 1]], color: '#FFA500' }, // J Grande
+
+        // Formas en "T"
+        { shape: [[1, 1, 1], [0, 1, 0]], color: '#9370DB' },   // T
+        { shape: [[0, 1, 0], [1, 1, 1]], color: '#9370DB' },   // T invertida
+
+        // Formas en "Z" y "S" (Dificultad Media)
+        { shape: [[1, 1, 0], [0, 1, 1]], color: '#FF6347' },   // Z
+        { shape: [[0, 1, 1], [1, 1, 0]], color: '#FF6347' },   // S
+
+        // --- GRUPO 4: DESAFÍOS (5+ Bloques) ---
+        // Piezas de riesgo para limpiar líneas o perder
+        { shape: [[1, 1, 1, 1, 1]], color: '#DC143C' },          // 1x5 Horizontal
+        { shape: [[1], [1], [1], [1], [1]], color: '#DC143C' },  // 1x5 Vertical
+        { shape: [[1, 1, 1], [1, 1, 1], [1, 1, 1]], color: '#8B0000' } // EL GIGANTE 3x3
     ];
     let currentPieces = [];
 
