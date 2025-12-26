@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { shape: [[1, 1, 1], [1, 1, 1], [1, 1, 1]], color: '#8B0000' } // EL GIGANTE 3x3
     ];
     let currentPieces = [];
+    let selectedPieceIndex = null;
 
     const gameBoard = document.getElementById('gameBoard');
     const piecesDiv = document.getElementById('pieces');
@@ -57,6 +58,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 cell.className = 'cell';
                 cell.dataset.row = i;
                 cell.dataset.col = j;
+                cell.addEventListener('click', () => {
+                    if (selectedPieceIndex === null) return;
+
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    const piece = currentPieces[selectedPieceIndex];
+
+                    if (canPlacePiece(piece, row, col)) {
+                        placePieceAt(piece, row, col);
+                        currentPieces.splice(selectedPieceIndex, 1);
+                        selectedPieceIndex = null;
+                        clearPreview();
+                        displayPieces();
+                        if (currentPieces.length === 0) {
+                            messageDiv.textContent = '¡Felicidades! Todas las piezas han sido colocadas. ¡Feliz Navidad!';
+                        } else {
+                            messageDiv.textContent = '';
+                        }
+                    }
+                });
+                cell.addEventListener('mouseenter', () => {
+                    if (selectedPieceIndex === null) return;
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    showPreview(row, col);
+                });
+                cell.addEventListener('mouseleave', () => {
+                    clearPreview();
+                });
                 gameBoard.appendChild(cell);
             }
         }
@@ -80,7 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     pieceDiv.appendChild(cellDiv);
                 });
             });
-            pieceDiv.addEventListener('click', () => placePiece(index));
+            if (index === selectedPieceIndex) {
+                pieceDiv.classList.add('selected');
+            }
+            pieceDiv.addEventListener('click', () => {
+                selectedPieceIndex = index;
+                messageDiv.textContent = '';
+                displayPieces();
+            });
             piecesDiv.appendChild(pieceDiv);
         });
     }
@@ -104,37 +141,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    function placePiece(index) {
-        const piece = currentPieces[index];
-        let placed = false;
-
-        for (let i = 0; i < boardSize; i++) {
-            for (let j = 0; j < boardSize; j++) {
-                if (canPlacePiece(piece, i, j)) {
-                    for (let row = 0; row < piece.shape.length; row++) {
-                        for (let col = 0; col < piece.shape[0].length; col++) {
-                            if (piece.shape[row][col] === 1) {
-                                board[i + row][j + col] = 1;
-                                const cell = document.querySelector(`.cell[data-row="${i + row}"][data-col="${j + col}"]`);
-                                cell.style.backgroundColor = piece.color;
-                            }
-                        }
-                    }
-                    placed = true;
-                    break;
+    function placePieceAt(piece, row, col) {
+        for (let i = 0; i < piece.shape.length; i++) {
+            for (let j = 0; j < piece.shape[0].length; j++) {
+                if (piece.shape[i][j] === 1) {
+                    board[row + i][col + j] = 1;
+                    const cell = document.querySelector(`.cell[data-row="${row + i}"][data-col="${col + j}"]`);
+                    cell.style.backgroundColor = piece.color;
                 }
             }
-            if (placed) break;
         }
+    }
 
-        if (placed) {
-            currentPieces.splice(index, 1);
-            displayPieces();
-            if (currentPieces.length === 0) {
-                messageDiv.textContent = '¡Felicidades! Todas las piezas han sido colocadas. ¡Feliz Navidad!';
+    function clearPreview() {
+        document.querySelectorAll('.cell.preview-valid, .cell.preview-invalid').forEach(cell => {
+            cell.classList.remove('preview-valid', 'preview-invalid');
+        });
+    }
+
+    function showPreview(row, col) {
+        clearPreview();
+        const piece = currentPieces[selectedPieceIndex];
+        if (!piece) return;
+        const isValid = canPlacePiece(piece, row, col);
+
+        for (let i = 0; i < piece.shape.length; i++) {
+            for (let j = 0; j < piece.shape[0].length; j++) {
+                if (piece.shape[i][j] !== 1) continue;
+                const previewRow = row + i;
+                const previewCol = col + j;
+                if (previewRow >= boardSize || previewCol >= boardSize) continue;
+                const cell = document.querySelector(`.cell[data-row="${previewRow}"][data-col="${previewCol}"]`);
+                cell.classList.add(isValid ? 'preview-valid' : 'preview-invalid');
             }
-        } else {
-            messageDiv.textContent = 'No se pudo colocar la pieza. Intenta con otra posición o genera nuevas piezas.';
         }
     }
 
@@ -142,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPieces = [];
         let attempts = 0;
         const maxAttempts = 100;
+        selectedPieceIndex = null;
 
         while (currentPieces.length < 3 && attempts < maxAttempts) {
             const newPiece = pieces[Math.floor(Math.random() * pieces.length)];
@@ -182,5 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
         board = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
         initializeBoard();
         generatePieces();
+        clearPreview();
     });
 });
