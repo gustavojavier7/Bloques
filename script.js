@@ -2,6 +2,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const boardSize = 8;
     let board = Array(boardSize).fill().map(() => Array(boardSize).fill(null));
 
+    const neonColors = {
+        yellow: '#ffd600',
+        blue: '#304ffe',
+        red: '#d50000',
+        green: '#00e676',
+        purple: '#aa00ff',
+        previewValid: 'rgba(48, 79, 254, 0.3)',
+        previewInvalid: 'rgba(213, 0, 0, 0.3)'
+    };
+
     // 1. Estado Global para la selección
     let selectedPieceIndex = null;
     let currentPieces = [];
@@ -9,33 +19,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- SET DE PIEZAS ESTÁNDAR (Integrado) ---
     const pieces = [
-        // BÁSICOS
-        { shape: [[1]], color: '#FFD700' }, // 1x1
-        { shape: [[1, 1]], color: '#FFD700' }, // 1x2 H
-        { shape: [[1], [1]], color: '#FFD700' }, // 1x2 V
-        // INTERMEDIOS
-        { shape: [[1, 1, 1]], color: '#ff4444' }, // 1x3 H
-        { shape: [[1], [1], [1]], color: '#ff4444' }, // 1x3 V
-        { shape: [[1, 0], [1, 1]], color: '#4444ff' }, // L 2x2
-        { shape: [[0, 1], [1, 1]], color: '#4444ff' }, // L Rotada 1
-        { shape: [[1, 1], [0, 1]], color: '#4444ff' }, // L Rotada 2
-        { shape: [[1, 1], [1, 0]], color: '#4444ff' }, // L Rotada 3
-        // CLÁSICOS
-        { shape: [[1, 1, 1, 1]], color: '#32CD32' }, // 1x4 H
-        { shape: [[1], [1], [1], [1]], color: '#32CD32' }, // 1x4 V
-        { shape: [[1, 1], [1, 1]], color: '#44ff44' }, // 2x2
-        { shape: [[1, 1, 1], [0, 1, 0]], color: '#9370DB' }, // T
-        { shape: [[0, 1, 0], [1, 1, 1]], color: '#9370DB' }, // T Invertida
+        // BÁSICOS - Amarillo Neon
+        { shape: [[1]], color: neonColors.yellow }, // 1x1
+        { shape: [[1, 1]], color: neonColors.yellow }, // 1x2 H
+        { shape: [[1], [1]], color: neonColors.yellow }, // 1x2 V
+        // INTERMEDIOS - Azul Neon
+        { shape: [[1, 1, 1]], color: neonColors.blue }, // 1x3 H
+        { shape: [[1], [1], [1]], color: neonColors.blue }, // 1x3 V
+        { shape: [[1, 0], [1, 1]], color: neonColors.blue }, // L 2x2
+        { shape: [[0, 1], [1, 1]], color: neonColors.blue }, // L Rotada 1
+        { shape: [[1, 1], [0, 1]], color: neonColors.blue }, // L Rotada 2
+        { shape: [[1, 1], [1, 0]], color: neonColors.blue }, // L Rotada 3
+        // CLÁSICOS - Rojo Neon
+        { shape: [[1, 1, 1, 1]], color: neonColors.red }, // 1x4 H
+        { shape: [[1], [1], [1], [1]], color: neonColors.red }, // 1x4 V
+        // Extra variedad
+        { shape: [[1, 1], [1, 1]], color: neonColors.green }, // 2x2
+        { shape: [[1, 1, 1], [0, 1, 0]], color: neonColors.purple }, // T
+        { shape: [[0, 1, 0], [1, 1, 1]], color: neonColors.purple }, // T Invertida
         // DIFÍCILES
-        { shape: [[1, 1, 1], [1, 1, 1], [1, 1, 1]], color: '#8B0000' }, // 3x3
-        { shape: [[1, 1, 0], [0, 1, 1]], color: '#FF6347' }, // Z
-        { shape: [[0, 1, 1], [1, 1, 0]], color: '#FF6347' } // S
+        { shape: [[1, 1, 1], [1, 1, 1], [1, 1, 1]], color: neonColors.red }, // 3x3
+        { shape: [[1, 1, 0], [0, 1, 1]], color: neonColors.red }, // Z
+        { shape: [[0, 1, 1], [1, 1, 0]], color: neonColors.red } // S
     ];
 
     const gameBoard = document.getElementById('gameBoard');
     const piecesDiv = document.getElementById('pieces');
     const generateButton = document.getElementById('generate');
     const messageDiv = document.getElementById('message');
+
+    function invariant(condition, message) {
+        if (!condition) {
+            throw new Error(message);
+        }
+    }
+
+    function validatePieces(piecesToValidate) {
+        invariant(Array.isArray(piecesToValidate) && piecesToValidate.length > 0, 'No hay piezas definidas.');
+        piecesToValidate.forEach((piece, index) => {
+            invariant(Array.isArray(piece.shape) && piece.shape.length > 0, `Pieza inválida en índice ${index}.`);
+            const rowLength = piece.shape[0].length;
+            invariant(rowLength > 0, `Pieza sin columnas en índice ${index}.`);
+            piece.shape.forEach(row => {
+                invariant(Array.isArray(row) && row.length === rowLength, `Forma irregular en índice ${index}.`);
+                row.forEach(value => {
+                    invariant(value === 0 || value === 1, `Valor inválido en pieza ${index}.`);
+                });
+            });
+            invariant(typeof piece.color === 'string' && piece.color.trim() !== '', `Color inválido en pieza ${index}.`);
+        });
+    }
+
+    invariant(Number.isInteger(boardSize) && boardSize > 0, 'El tamaño del tablero debe ser un entero positivo.');
+    invariant(gameBoard, 'No se encontró el tablero (#gameBoard).');
+    invariant(piecesDiv, 'No se encontró el contenedor de piezas (#pieces).');
+    invariant(generateButton, 'No se encontró el botón de generación (#generate).');
+    invariant(messageDiv, 'No se encontró el contenedor de mensajes (#message).');
+    validatePieces(pieces);
 
     function initializeBoard() {
         gameBoard.innerHTML = '';
@@ -79,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showGameOver() {
         isGameOver = true;
         messageDiv.textContent = 'GAME OVER - Pulsa "Generar" para reiniciar';
-        messageDiv.style.color = 'red';
+        messageDiv.style.color = neonColors.red;
         gameBoard.style.opacity = '0.5';
     }
 
@@ -91,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const piece = currentPieces[selectedPieceIndex];
         if (!piece || piece.played) return;
         const isValid = canPlacePiece(piece, row, col);
-        const color = isValid ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 0, 0, 0.3)';
+        const color = isValid ? neonColors.previewValid : neonColors.previewInvalid;
 
         // Dibujar "fantasma"
         drawGhost(piece, row, col, color);
@@ -126,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < boardSize; i++) {
             for (let j = 0; j < boardSize; j++) {
                 const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`);
-                cell.style.backgroundColor = board[i][j] ?? 'white';
+                cell.style.backgroundColor = board[i][j] ?? '';
             }
         }
     }
@@ -166,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             messageDiv.textContent = 'No cabe ahí';
-            messageDiv.style.color = '#dc3545';
+            messageDiv.style.color = neonColors.red;
             setTimeout(() => {
                 messageDiv.textContent = '';
             }, 1000);
@@ -253,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Aquí podrías añadir sonido: playSound('clear');
                 resolve();
-            }, 300); // 300ms coincide con 0.15s * 2 del CSS
+            }, 400); // 400ms coincide con 0.4s del CSS
         });
     }
 
@@ -263,13 +303,11 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPieces.forEach((piece, index) => {
             const pieceDiv = document.createElement('div');
             pieceDiv.className = 'piece';
+            pieceDiv.classList.toggle('selected', index === selectedPieceIndex);
             if (piece.played) {
                 pieceDiv.style.opacity = '0.4';
             }
-            if (index === selectedPieceIndex) {
-                pieceDiv.style.borderColor = '#ff0000';
-                pieceDiv.style.transform = 'scale(1.1)';
-            }
+            pieceDiv.style.transform = index === selectedPieceIndex ? 'scale(1.05)' : '';
 
             pieceDiv.style.display = 'grid';
             pieceDiv.style.gridTemplateColumns = `repeat(${piece.shape[0].length}, 16px)`;
@@ -344,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const simplePiece = pieces.find(
                 piece => piece.shape.length === 1 && piece.shape[0].length === 1
             ); // 1x1
+            invariant(simplePiece, 'No se encontró una pieza simple 1x1.');
             currentPieces = [
                 { ...simplePiece, played: false },
                 { ...simplePiece, played: false },
@@ -370,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPieces = [];
         isGameOver = false;
         messageDiv.textContent = '';
-        messageDiv.style.color = '#dc3545';
+        messageDiv.style.color = neonColors.red;
         gameBoard.style.opacity = '1';
         initializeBoard();
         generatePieces();
