@@ -131,10 +131,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const piece = currentPieces[selectedPieceIndex];
         if (!piece || piece.played) return;
         const isValid = canPlacePiece(piece, row, col);
-        const color = isValid ? neonColors.previewValid : neonColors.previewInvalid;
 
         // Dibujar "fantasma"
-        drawGhost(piece, row, col, color);
+        drawGhost(piece, row, col, isValid);
     }
 
     function handleMouseLeave() {
@@ -142,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshBoardView();
     }
 
-    function drawGhost(piece, startRow, startCol, color) {
+    function drawGhost(piece, startRow, startCol, isValid) {
         refreshBoardView();
         for (let i = 0; i < piece.shape.length; i++) {
             for (let j = 0; j < piece.shape[0].length; j++) {
@@ -154,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             `.cell[data-row="${targetRow}"][data-col="${targetCol}"]`
                         );
                         if (cell) {
-                            cell.style.backgroundColor = color;
+                            cell.classList.add(isValid ? 'preview-valid' : 'preview-invalid');
                         }
                     }
                 }
@@ -166,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < boardSize; i++) {
             for (let j = 0; j < boardSize; j++) {
                 const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`);
+                cell.classList.remove('preview-valid', 'preview-invalid');
                 cell.style.backgroundColor = board[i][j] ?? '';
             }
         }
